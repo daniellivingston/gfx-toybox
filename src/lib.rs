@@ -10,25 +10,16 @@ use wasm_bindgen::prelude::*;
 
 #[cfg_attr(target_arch="wasm32", wasm_bindgen(start))]
 pub fn run() {
-    cfg_if::cfg_if! {
-        if #[cfg(target_arch = "wasm32")] {
-            std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-            console_log::init_with_level(log::Level::Warn).expect("Couldn't initialize logger");
-        } else {
-            env_logger::init();
-        }
-    }
-
     let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
-    
+
     #[cfg(target_arch = "wasm32")]
     {
         // Winit prevents sizing with CSS, so we have to set
         // the size manually when on web.
         use winit::dpi::PhysicalSize;
         let _ = window.request_inner_size(PhysicalSize::new(450, 400));
-        
+
         use winit::platform::web::WindowExtWebSys;
         web_sys::window()
             .and_then(|win| win.document())
@@ -64,4 +55,25 @@ pub fn run() {
         _ => {}
     })
     .unwrap();
+}
+
+pub async fn print_adapters() {
+    let adapter = {
+        let instance = wgpu::Instance::default();
+
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            log::info!("Available adapters:");
+            for adapter in instance.enumerate_adapters(wgpu::Backends::all()) {
+                log::info!("    {:?}", adapter.get_info());
+            }
+        }
+
+        instance
+            .request_adapter(&wgpu::RequestAdapterOptions::default())
+            .await
+            .expect("could not request default adapter")
+    };
+
+    log::info!("Default adapter: {:?}", adapter.get_info());
 }
