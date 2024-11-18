@@ -24,5 +24,5 @@ fn main() {
     #[cfg(target_arch = "wasm32")]
     wasm_bindgen_futures::spawn_local(print_adapters());
 
-    run();
+    pollster::block_on(run());
 }
